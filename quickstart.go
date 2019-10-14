@@ -99,5 +99,6 @@ func main() {
 			log.Fatalf("Error: %v", err)
 		}
 		fmt.Printf("FileID=%s, FolderID=%s, FolderName=%s\n", i.Id, i.Parents[0], r.Name)
+		srv.Files.Export(i.Id, "pdf").Download()
 	}
 }
