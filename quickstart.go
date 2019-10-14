@@ -69,6 +69,21 @@ func saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
+func createFile(name string, data []byte) {
+	f, err := os.Create(name)
+	defer f.Close()
+	check(err)
+	n3, err := f.Write(data)
+	fmt.Printf("wrote %d bytes\n", n3)
+	f.Sync()
+}
+
 func main() {
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
@@ -89,7 +104,7 @@ func main() {
 
 	parentDirectory := "0B-VJpOQeezDjZktuTnlEMEpGMUU"
 	r, err := srv.Files.List().
-		Q("\"" + parentDirectory + "\" in parents and trashed=false and mimeType != 'application/vnd.google-apps.folder'").Fields("files(id,parents)").Do() // "trashed=false" doesn't search in the trash box.
+		Q("\"" + parentDirectory + "\" in parents and trashed=false and mimeType != 'application/vnd.google-apps.folder'").Fields("files(id,name,parents)").Do() // "trashed=false" doesn't search in the trash box.
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
@@ -98,12 +113,14 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error: %v", err)
 		}
-		fmt.Printf("FileID=%s, FolderID=%s, FolderName=%s\n", i.Id, i.Parents[0], r.Name)
+		fmt.Printf("FileID=%s, Filename=%s, FolderName=%s\n", i.Id, i.Name, r.Name)
 		res, err := srv.Files.Export(i.Id, "application/pdf").Download()
 		if err != nil {
 			log.Fatalf("Error: %v", err)
 		}
-		result, _ := ioutil.ReadAll(res.Body)
-		fmt.Println(string(result))
+		data, _ := ioutil.ReadAll(res.Body)
+
+		outFileName := fmt.Sprintf("/home/fjammes/src/k8s-school-www/pdf/%s.pdf", i.Name)
+		createFile(outFileName, data)
 	}
 }
