@@ -76,7 +76,7 @@ func main() {
 	}
 
 	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, drive.DriveMetadataReadonlyScope)
+	config, err := google.ConfigFromJSON(b, drive.DriveMetadataReadonlyScope, drive.DriveScope)
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
@@ -89,7 +89,7 @@ func main() {
 
 	parentDirectory := "0B-VJpOQeezDjZktuTnlEMEpGMUU"
 	r, err := srv.Files.List().
-		Q("\"" + parentDirectory + "\" in parents and trashed=false").Fields("files(id,parents)").Do() // "trashed=false" doesn't search in the trash box.
+		Q("\"" + parentDirectory + "\" in parents and trashed=false and mimeType != 'application/vnd.google-apps.folder'").Fields("files(id,parents)").Do() // "trashed=false" doesn't search in the trash box.
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
@@ -99,6 +99,11 @@ func main() {
 			log.Fatalf("Error: %v", err)
 		}
 		fmt.Printf("FileID=%s, FolderID=%s, FolderName=%s\n", i.Id, i.Parents[0], r.Name)
-		srv.Files.Export(i.Id, "pdf").Download()
+		res, err := srv.Files.Export(i.Id, "application/pdf").Download()
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+		result, _ := ioutil.ReadAll(res.Body)
+		fmt.Println(string(result))
 	}
 }
