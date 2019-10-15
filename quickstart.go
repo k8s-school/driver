@@ -76,7 +76,7 @@ func createFile(name string, data []byte) {
 	}
 	defer f.Close()
 	n3, err := f.Write(data)
-	fmt.Printf("wrote %d bytes\n", n3)
+	log.Printf("wrote %d bytes\n", n3)
 	f.Sync()
 }
 
@@ -99,11 +99,13 @@ func main() {
 	}
 
 	const mimeTypePdf = "application/pdf"
+	const mimeTypeFolder = "application/vnd.google-apps.folder"
+	const mimeTypeForm = "application/vnd.google-apps.form"
 	const parentDirectory = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
 	const targetDir = "/home/fjammes/src/k8s-school-www/content/pdf"
 
 	r, err := srv.Files.List().
-		Q("\"" + parentDirectory + "\" in parents and trashed=false and mimeType != 'application/vnd.google-apps.folder'").Fields("files(id,name,parents,mimeType)").Do()
+		Q("\"" + parentDirectory + "\" in parents and trashed=false and mimeType != '" + mimeTypeFolder + "'").Fields("files(id,name,parents,mimeType)").Do()
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
@@ -118,8 +120,9 @@ func main() {
 		var res *http.Response
 		var outFileName string
 
-		if i.MimeType == "application/vnd.google-apps.form" {
+		if i.MimeType == mimeTypeForm {
 			log.Printf("Excluding filename=%s, MimeType=%s\n", i.Name, i.MimeType)
+			continue
 		} else if i.MimeType != mimeTypePdf {
 			res, err = srv.Files.Export(i.Id, mimeTypePdf).Download()
 			if err != nil {
