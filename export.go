@@ -14,6 +14,12 @@ import (
 	"google.golang.org/api/drive/v3"
 )
 
+const mimeTypePdf = "application/pdf"
+const mimeTypePng = "application/png"
+const mimeTypeSvg = "application/svg"
+const mimeTypeFolder = "application/vnd.google-apps.folder"
+const mimeTypeForm = "application/vnd.google-apps.form"
+
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
@@ -80,36 +86,19 @@ func createFile(name string, data []byte) {
 	f.Sync()
 }
 
-func main() {
-	b, err := ioutil.ReadFile("credentials.json")
-	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
-	}
-
-	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, drive.DriveMetadataReadonlyScope, drive.DriveScope)
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
-	client := getClient(config)
-
-	srv, err := drive.New(client)
-	if err != nil {
-		log.Fatalf("Unable to retrieve Drive client: %v", err)
-	}
-
-	const mimeTypePdf = "application/pdf"
-	const mimeTypeFolder = "application/vnd.google-apps.folder"
-	const mimeTypeForm = "application/vnd.google-apps.form"
-	const parentDirectory = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
-	const targetDir = "/home/fjammes/src/k8s-school-www/content/pdf"
-
+func getFiles(srv *drive.Service, parentFolder string) []*drive.File {
 	r, err := srv.Files.List().
-		Q("\"" + parentDirectory + "\" in parents and trashed=false and mimeType != '" + mimeTypeFolder + "'").Fields("files(id,name,parents,mimeType)").Do()
+		Q("\"" + parentFolder + "\" in parents and trashed=false and mimeType != '" + mimeTypeFolder + "'").Fields("files(id,name,parents,mimeType)").Do()
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
-	for _, i := range r.Files {
+	return r.Files
+}
+
+func createPdfFiles(srv *drive.Service, parentFolder string, targetDir string) {
+
+	files := getFiles(srv, parentFolder)
+	for _, i := range files {
 		r, err := srv.Files.Get(i.Parents[0]).Fields("name").Do()
 		if err != nil {
 			log.Fatalf("Error: %v", err)
@@ -143,4 +132,73 @@ func main() {
 		}
 		createFile(outFileName, data)
 	}
+}
+
+func createSvgFiles(srv *drive.Service, parentFolder string, targetDir string) {
+
+	files := getFiles(srv, parentFolder)
+	for _, i := range files {
+		r, err := srv.Files.Get(i.Parents[0]).Fields("name").Do()
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+		log.Printf("FileID=%s, Filename=%s, FolderName=%s MimeType=%s\n", i.Id, i.Name, r.Name, i.MimeType)
+
+		var data []byte
+		var res *http.Response
+		var outFileName string
+
+		if i.MimeType == mimeTypeForm {
+			log.Printf("Excluding filename=%s, MimeType=%s\n", i.Name, i.MimeType)
+			continue
+		} else if i.MimeType != mimeTypePng {
+			res, err = srv.Files.Export(i.Id, mimeTypePdf).Download()
+			if err != nil {
+				log.Fatalf("Error: %v", err)
+			}
+			outFileName = fmt.Sprintf("%s/%s.svg", targetDir, i.Name)
+		} else {
+			res, err = srv.Files.Get(i.Id).Download()
+			if err != nil {
+				log.Fatalf("Error: %v", err)
+			}
+			outFileName = fmt.Sprintf("%s/%s", targetDir, i.Name)
+		}
+
+		data, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+		createFile(outFileName, data)
+	}
+}
+
+func main() {
+	b, err := ioutil.ReadFile("credentials.json")
+	if err != nil {
+		log.Fatalf("Unable to read client secret file: %v", err)
+	}
+
+	// If modifying these scopes, delete your previously saved token.json.
+	config, err := google.ConfigFromJSON(b, drive.DriveMetadataReadonlyScope, drive.DriveScope)
+	if err != nil {
+		log.Fatalf("Unable to parse client secret file to config: %v", err)
+	}
+	client := getClient(config)
+
+	srv, err := drive.New(client)
+	if err != nil {
+		log.Fatalf("Unable to retrieve Drive client: %v", err)
+	}
+
+	// const parentFolder = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
+	// const targetDir = "/home/fjammes/src/k8s-school-www/content/pdf"
+
+	// createPdfFiles(srv, parentFolder, targetDir)
+
+	const parentFolder = "1JiVDJ62v_x8yf2GdadSjwLKPkng2nFtL"
+	const targetDir = "/tmp/img"
+
+	createSvgFiles(srv, parentFolder, targetDir)
+
 }
