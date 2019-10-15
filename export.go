@@ -188,15 +188,19 @@ func main() {
 
 	home := os.Getenv("HOME")
 
-	// const parentFolder = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
-	// const targetDir = "/home/fjammes/src/k8s-school-www/content/pdf"
+	subPath := "src/k8s-school-www/content/pdf"
+	//pdfTargetDir := path.Join(home, subPath)
 
-	// createPdfFiles(srv, parentFolder, targetDir)
+	// const slideFolder = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
+	//createPdfFiles(srv, slideFolder, pdfTargetDir)
 
-	const parentFolder = "1JiVDJ62v_x8yf2GdadSjwLKPkng2nFtL"
-	const subPath = "src/k8s-school-www/static/images"
-	targetDir := path.Join(home, subPath)
+	subPath = "src/k8s-school-www/static/images"
+	imageTargetDir := path.Join(home, subPath)
 
-	createSvgFiles(srv, parentFolder, targetDir)
+	const programFolder = "1ZaPoNf2RhMxonGKhGBgTBSTJ0ZxnQs82"
+	createPdfFiles(srv, programFolder, imageTargetDir)
+
+	imageFolder := "1JiVDJ62v_x8yf2GdadSjwLKPkng2nFtL"
+	createSvgFiles(srv, imageFolder, imageTargetDir)
 
 }
