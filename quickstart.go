@@ -69,16 +69,12 @@ func saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
 func createFile(name string, data []byte) {
 	f, err := os.Create(name)
+	if err != nil {
+		log.Fatalf("Unable to create file %s: %v", name, err)
+	}
 	defer f.Close()
-	check(err)
 	n3, err := f.Write(data)
 	fmt.Printf("wrote %d bytes\n", n3)
 	f.Sync()
@@ -102,9 +98,12 @@ func main() {
 		log.Fatalf("Unable to retrieve Drive client: %v", err)
 	}
 
-	parentDirectory := "0B-VJpOQeezDjZktuTnlEMEpGMUU"
+	const mimeTypePdf = "application/pdf"
+	const parentDirectory = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
+	const targetDir = "/home/fjammes/src/k8s-school-www/content/pdf"
+
 	r, err := srv.Files.List().
-		Q("\"" + parentDirectory + "\" in parents and trashed=false and mimeType != 'application/vnd.google-apps.folder'").Fields("files(id,name,parents)").Do() // "trashed=false" doesn't search in the trash box.
+		Q("\"" + parentDirectory + "\" in parents and trashed=false and mimeType != 'application/vnd.google-apps.folder'").Fields("files(id,name,parents,mimeType)").Do()
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
@@ -113,14 +112,32 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error: %v", err)
 		}
-		fmt.Printf("FileID=%s, Filename=%s, FolderName=%s\n", i.Id, i.Name, r.Name)
-		res, err := srv.Files.Export(i.Id, "application/pdf").Download()
+		log.Printf("FileID=%s, Filename=%s, FolderName=%s MimeType=%s\n", i.Id, i.Name, r.Name, i.MimeType)
+
+		var data []byte
+		var res *http.Response
+		var outFileName string
+
+		if i.MimeType == "application/vnd.google-apps.form" {
+			log.Printf("Excluding filename=%s, MimeType=%s\n", i.Name, i.MimeType)
+		} else if i.MimeType != mimeTypePdf {
+			res, err = srv.Files.Export(i.Id, mimeTypePdf).Download()
+			if err != nil {
+				log.Fatalf("Error: %v", err)
+			}
+			outFileName = fmt.Sprintf("%s/%s.pdf", targetDir, i.Name)
+		} else {
+			res, err = srv.Files.Get(i.Id).Download()
+			if err != nil {
+				log.Fatalf("Error: %v", err)
+			}
+			outFileName = fmt.Sprintf("%s/%s", targetDir, i.Name)
+		}
+
+		data, err = ioutil.ReadAll(res.Body)
 		if err != nil {
 			log.Fatalf("Error: %v", err)
 		}
-		data, _ := ioutil.ReadAll(res.Body)
-
-		outFileName := fmt.Sprintf("/home/fjammes/src/k8s-school-www/pdf/%s.pdf", i.Name)
 		createFile(outFileName, data)
 	}
 }
