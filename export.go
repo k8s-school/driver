@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -15,8 +16,8 @@ import (
 )
 
 const mimeTypePdf = "application/pdf"
-const mimeTypePng = "application/png"
-const mimeTypeSvg = "application/svg"
+const mimeTypePng = "image/png"
+const mimeTypeSvg = "image/svg+xml"
 const mimeTypeFolder = "application/vnd.google-apps.folder"
 const mimeTypeForm = "application/vnd.google-apps.form"
 
@@ -151,18 +152,12 @@ func createSvgFiles(srv *drive.Service, parentFolder string, targetDir string) {
 		if i.MimeType == mimeTypeForm {
 			log.Printf("Excluding filename=%s, MimeType=%s\n", i.Name, i.MimeType)
 			continue
-		} else if i.MimeType != mimeTypePng {
-			res, err = srv.Files.Export(i.Id, mimeTypePdf).Download()
+		} else {
+			res, err = srv.Files.Export(i.Id, mimeTypeSvg).Download()
 			if err != nil {
 				log.Fatalf("Error: %v", err)
 			}
 			outFileName = fmt.Sprintf("%s/%s.svg", targetDir, i.Name)
-		} else {
-			res, err = srv.Files.Get(i.Id).Download()
-			if err != nil {
-				log.Fatalf("Error: %v", err)
-			}
-			outFileName = fmt.Sprintf("%s/%s", targetDir, i.Name)
 		}
 
 		data, err = ioutil.ReadAll(res.Body)
@@ -191,13 +186,16 @@ func main() {
 		log.Fatalf("Unable to retrieve Drive client: %v", err)
 	}
 
+	home := os.Getenv("HOME")
+
 	// const parentFolder = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
 	// const targetDir = "/home/fjammes/src/k8s-school-www/content/pdf"
 
 	// createPdfFiles(srv, parentFolder, targetDir)
 
 	const parentFolder = "1JiVDJ62v_x8yf2GdadSjwLKPkng2nFtL"
-	const targetDir = "/tmp/img"
+	const subPath = "src/k8s-school-www/static/images"
+	targetDir := path.Join(home, subPath)
 
 	createSvgFiles(srv, parentFolder, targetDir)
 
