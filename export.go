@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sort"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -96,7 +97,9 @@ func getFiles(srv *drive.Service, parentFolder string) []*drive.File {
 	return r.Files
 }
 
-func createPdfFiles(srv *drive.Service, parentFolder string, targetDir string) {
+func createPdfFiles(srv *drive.Service, parentFolder string, targetDir string) []string {
+
+	var filenames []string
 
 	files := getFiles(srv, parentFolder)
 	for _, i := range files {
@@ -106,7 +109,6 @@ func createPdfFiles(srv *drive.Service, parentFolder string, targetDir string) {
 		}
 		log.Printf("FileID=%s, Filename=%s, FolderName=%s MimeType=%s\n", i.Id, i.Name, r.Name, i.MimeType)
 
-		var data []byte
 		var res *http.Response
 		var outFileName string
 
@@ -126,13 +128,17 @@ func createPdfFiles(srv *drive.Service, parentFolder string, targetDir string) {
 			}
 			outFileName = fmt.Sprintf("%s/%s", targetDir, i.Name)
 		}
-
+		log.Printf("Append %s", outFileName)
+		filenames = append(filenames, outFileName)
+		var data []byte
 		data, err = ioutil.ReadAll(res.Body)
 		if err != nil {
 			log.Fatalf("Error: %v", err)
 		}
+
 		createFile(outFileName, data)
 	}
+	return filenames
 }
 
 func createSvgFiles(srv *drive.Service, parentFolder string, targetDir string) {
@@ -168,6 +174,16 @@ func createSvgFiles(srv *drive.Service, parentFolder string, targetDir string) {
 	}
 }
 
+func createMarkdown(filenames []string, urlPrefix string) string {
+
+	sort.Strings(filenames)
+	markdown := "| Fichiers   |\n|----------|\n"
+	for _, f := range filenames {
+		markdown += "| [" + f + "](" + urlPrefix + "/" + f + ") |\n"
+	}
+	return markdown
+}
+
 func main() {
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
@@ -189,16 +205,19 @@ func main() {
 	home := os.Getenv("HOME")
 
 	subPath := "src/k8s-school-www/content/pdf"
-	//pdfTargetDir := path.Join(home, subPath)
+	pdfTargetDir := path.Join(home, subPath)
 
-	// const slideFolder = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
-	//createPdfFiles(srv, slideFolder, pdfTargetDir)
+	const slideFolder = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
+	filenames := createPdfFiles(srv, slideFolder, pdfTargetDir)
+	markdown := createMarkdown(filenames, "/pdf")
+	log.Printf(markdown)
 
 	subPath = "src/k8s-school-www/static/images"
 	imageTargetDir := path.Join(home, subPath)
 
 	const programFolder = "1ZaPoNf2RhMxonGKhGBgTBSTJ0ZxnQs82"
-	createPdfFiles(srv, programFolder, imageTargetDir)
+	filenames = createPdfFiles(srv, programFolder, imageTargetDir)
+	log.Printf(markdown)
 
 	imageFolder := "1JiVDJ62v_x8yf2GdadSjwLKPkng2nFtL"
 	createSvgFiles(srv, imageFolder, imageTargetDir)
