@@ -216,8 +216,7 @@ func main() {
 	imageTargetDir := path.Join(home, subPath)
 
 	const programFolder = "1ZaPoNf2RhMxonGKhGBgTBSTJ0ZxnQs82"
-	filenames = createPdfFiles(srv, programFolder, imageTargetDir)
-	log.Printf(markdown)
+	createPdfFiles(srv, programFolder, imageTargetDir)
 
 	imageFolder := "1JiVDJ62v_x8yf2GdadSjwLKPkng2nFtL"
 	createSvgFiles(srv, imageFolder, imageTargetDir)
