@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -169,6 +170,12 @@ func createSvgFiles(srv *drive.Service, parentFolder string, targetDir string) {
 }
 
 func main() {
+
+	slideExport := flag.Bool("sld", false, "export slides to .pdf")
+	pgmExport := flag.Bool("pgm", false, "export programs to .pdf")
+	imgExport := flag.Bool("img", true, "export images to .svg")
+	flag.Parse()
+
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
@@ -188,19 +195,22 @@ func main() {
 
 	home := os.Getenv("HOME")
 
-	subPath := "src/k8s-school-www/content/pdf"
-	//pdfTargetDir := path.Join(home, subPath)
+	if *slideExport {
+		subPath := "src/k8s-school-www/content/pdf"
+		pdfTargetDir := path.Join(home, subPath)
 
-	// const slideFolder = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
-	//createPdfFiles(srv, slideFolder, pdfTargetDir)
+		const slideFolder = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
+		createPdfFiles(srv, slideFolder, pdfTargetDir)
+	}
 
-	subPath = "src/k8s-school-www/static/images"
+	subPath := "src/k8s-school-www/static/images"
 	imageTargetDir := path.Join(home, subPath)
-
-	const programFolder = "1ZaPoNf2RhMxonGKhGBgTBSTJ0ZxnQs82"
-	createPdfFiles(srv, programFolder, imageTargetDir)
-
-	imageFolder := "1JiVDJ62v_x8yf2GdadSjwLKPkng2nFtL"
-	createSvgFiles(srv, imageFolder, imageTargetDir)
-
+	if *pgmExport {
+		const programFolder = "1ZaPoNf2RhMxonGKhGBgTBSTJ0ZxnQs82"
+		createPdfFiles(srv, programFolder, imageTargetDir)
+	}
+	if *imgExport {
+		imageFolder := "1JiVDJ62v_x8yf2GdadSjwLKPkng2nFtL"
+		createSvgFiles(srv, imageFolder, imageTargetDir)
+	}
 }
