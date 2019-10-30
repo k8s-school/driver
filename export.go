@@ -210,10 +210,10 @@ func main() {
 	}
 
 	home := os.Getenv("HOME")
+	wwwDir := path.Join(home, "src/k8s-school-www/public")
 
 	if *slideExport {
-		subPath := "src/k8s-school-www/content/pdf"
-		pdfTargetDir := path.Join(home, subPath)
+		pdfTargetDir := path.Join(wwwDir, "pdf")
 
 		const slideFolder = "0B-VJpOQeezDjZktuTnlEMEpGMUU"
 		filenames := createPdfFiles(srv, slideFolder, pdfTargetDir)
@@ -221,8 +221,7 @@ func main() {
 		log.Printf(markdown)
 	}
 
-	subPath := "src/k8s-school-www/static/images"
-	imageTargetDir := path.Join(home, subPath)
+	imageTargetDir := path.Join(wwwDir, "images")
 	if *pgmExport {
 		const programFolder = "1ZaPoNf2RhMxonGKhGBgTBSTJ0ZxnQs82"
 		createPdfFiles(srv, programFolder, imageTargetDir)
