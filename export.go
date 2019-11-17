@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 
 	"golang.org/x/net/context"
@@ -180,7 +181,9 @@ func createMarkdown(filenames []string, urlPrefix string) string {
 	sort.Strings(filenames)
 	markdown := "| Fichiers   |\n|----------|\n"
 	for _, f := range filenames {
-		markdown += "| [" + f + "](" + urlPrefix + "/" + f + ") |\n"
+
+		basename := filepath.Base(f)
+		markdown += "| [" + basename + "](" + path.Join(urlPrefix, basename) + ") |\n"
 	}
 	return markdown
 }
