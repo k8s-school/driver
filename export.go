@@ -213,7 +213,7 @@ func main() {
 	}
 
 	home := os.Getenv("HOME")
-	wwwDir := path.Join(home, "src/k8s-school-www/public")
+	wwwDir := path.Join(home, "src/github.com/k8s-school/k8s-school-www/public")
 
 	if *slideExport {
 		pdfTargetDir := path.Join(wwwDir, "pdf")
